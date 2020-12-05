@@ -44,6 +44,7 @@ public:
 #define SONY 2
 #define RC5 3
 #define RC6 4
+#define SAMSUNG 5
 #define UNKNOWN -1
 
 // Decoded value for NEC when a repeat code is received
@@ -57,6 +58,8 @@ public:
   int decode(decode_results *results);
   void enableIRIn();
   void resume();
+  bool decodePulseDistanceData(unsigned int aNumberOfBits, unsigned int aStartOffset, unsigned int aBitMarkMicros,
+        unsigned int aOneSpaceMicros, unsigned int aZeroSpaceMicros, decode_results *results, bool aMSBfirst = true);
 private:
   // These are called by decode
   int getRClevel(decode_results *results, int *offset, int *used, int t1);
@@ -64,6 +67,7 @@ private:
   long decodeSony(decode_results *results);
   long decodeRC5(decode_results *results);
   long decodeRC6(decode_results *results);
+  long decodeSAMSUNG(decode_results *results);
 } 
 ;
 
@@ -83,6 +87,7 @@ public:
   void sendRaw(unsigned int buf[], int len, int hz);
   void sendRC5(unsigned long data, int nbits);
   void sendRC6(unsigned long data, int nbits);
+  void sendSAMSUNG(unsigned long data, int nbits);
   // private:
   void enableIROut(int khz);
   VIRTUAL void mark(int usec);

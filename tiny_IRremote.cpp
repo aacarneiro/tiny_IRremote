@@ -1,22 +1,22 @@
 /*
- * tiny_IRremote
- * Version 0.2 July, 2016
- * Christian D'Abrera
- * Fixed what was originally rather broken code from http://www.gammon.com.au/Arduino/
- * ...itself based on work by Ken Shirriff.
- *
- * This code was tested for both sending and receiving IR on an ATtiny85 DIP-8 chip.
- * IMPORTANT: IRsend only works from PB4 ("pin 4" according to Arduino). You will need to 
- * determine which physical pin this corresponds to for your chip, and connect your transmitter
- * LED there.
- *
- * Copyright 2009 Ken Shirriff
- * For details, see http://arcfn.com/2009/08/multi-protocol-infrared-remote-library.html
- *
- * Interrupt code based on NECIRrcv by Joe Knapp
- * http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1210243556
- * Also influenced by http://zovirl.com/2008/11/12/building-a-universal-remote-with-an-arduino/
- */
+   tiny_IRremote
+   Version 0.2 July, 2016
+   Christian D'Abrera
+   Fixed what was originally rather broken code from http://www.gammon.com.au/Arduino/
+   ...itself based on work by Ken Shirriff.
+
+   This code was tested for both sending and receiving IR on an ATtiny85 DIP-8 chip.
+   IMPORTANT: IRsend only works from PB4 ("pin 4" according to Arduino). You will need to
+   determine which physical pin this corresponds to for your chip, and connect your transmitter
+   LED there.
+
+   Copyright 2009 Ken Shirriff
+   For details, see http://arcfn.com/2009/08/multi-protocol-infrared-remote-library.html
+
+   Interrupt code based on NECIRrcv by Joe Knapp
+   http://www.arduino.cc/cgi-bin/yabb2/YaBB.pl?num=1210243556
+   Also influenced by http://zovirl.com/2008/11/12/building-a-universal-remote-with-an-arduino/
+*/
 
 #include "tiny_IRremote.h"
 #include "tiny_IRremoteInt.h"
@@ -79,7 +79,7 @@ void IRsend::sendNEC(unsigned long data, int nbits)
     if (data & TOPBIT) {
       mark(NEC_BIT_MARK);
       space(NEC_ONE_SPACE);
-    } 
+    }
     else {
       mark(NEC_BIT_MARK);
       space(NEC_ZERO_SPACE);
@@ -99,7 +99,7 @@ void IRsend::sendSony(unsigned long data, int nbits) {
     if (data & TOPBIT) {
       mark(SONY_ONE_MARK);
       space(SONY_HDR_SPACE);
-    } 
+    }
     else {
       mark(SONY_ZERO_MARK);
       space(SONY_HDR_SPACE);
@@ -108,13 +108,42 @@ void IRsend::sendSony(unsigned long data, int nbits) {
   }
 }
 
+void IRsend::sendSAMSUNG(unsigned long data, int nbits) {
+  // Set IR carrier frequency
+  enableIROut(38);
+
+  // Header
+  mark(SAMSUNG_HEADER_MARK);
+  space(SAMSUNG_HEADER_SPACE);
+
+  // Data
+  // old version, this function is not implemented for attiny
+  // sendPulseDistanceWidthData(SAMSUNG_BIT_MARK, SAMSUNG_ONE_SPACE, SAMSUNG_BIT_MARK, SAMSUNG_ZERO_SPACE, data, nbits);
+
+  for (int i = 0; i < nbits; i++) {
+    if (data & TOPBIT) {
+      mark(SAMSUNG_BIT_MARK);
+      space(SAMSUNG_ONE_SPACE);
+    }
+    else {
+      mark(SAMSUNG_BIT_MARK);
+      space(SAMSUNG_ZERO_SPACE);
+    }
+    data <<= 1;
+  }
+
+  // Footer
+  mark(SAMSUNG_BIT_MARK);
+  space(0);  // Always end with the LED off
+}
+
 void IRsend::sendRaw(unsigned int buf[], int len, int hz)
 {
   enableIROut(hz);
   for (int i = 0; i < len; i++) {
     if (i & 1) {
       space(buf[i]);
-    } 
+    }
     else {
       mark(buf[i]);
     }
@@ -134,7 +163,7 @@ void IRsend::sendRC5(unsigned long data, int nbits)
     if (data & TOPBIT) {
       space(RC5_T1); // 1 is space, then mark
       mark(RC5_T1);
-    } 
+    }
     else {
       mark(RC5_T1);
       space(RC5_T1);
@@ -158,14 +187,14 @@ void IRsend::sendRC6(unsigned long data, int nbits)
     if (i == 3) {
       // double-wide trailer bit
       t = 2 * RC6_T1;
-    } 
+    }
     else {
       t = RC6_T1;
     }
     if (data & TOPBIT) {
       mark(t);
       space(t);
-    } 
+    }
     else {
       space(t);
       mark(t);
@@ -175,6 +204,8 @@ void IRsend::sendRC6(unsigned long data, int nbits)
   }
   space(0); // Turn off at end
 }
+
+
 
 void IRsend::mark(int time) {
   // Sends an IR mark for the specified number of microseconds.
@@ -203,19 +234,19 @@ void IRsend::enableIROut(int khz) {
   // A few hours staring at the ATmega documentation and this will all make sense.
   // See my Secrets of Arduino PWM at http://arcfn.com/2009/07/secrets-of-arduino-pwm.html for details.
 
-  
+
   // Disable the Timer1 Interrupt (which is used for receiving IR)
   TIMSK &= ~_BV(TOIE1); //Timer1 Overflow Interrupt
 
-  
+
   pinMode(4, OUTPUT);  // (PB4 - Arduino D4 - physical pin 3)
   digitalWrite(4, LOW); // When not sending PWM, we want it low
-  
+
 
   // CTC1 = 1: TOP value set to OCR1C
   // CS = 0001: No Prescaling
   TCCR1 = _BV(CTC1) | _BV(CS10);
-  
+
   // PWM1B = 1: Enable PWM for OCR1B
   GTCCR = _BV(PWM1B);
 
@@ -279,50 +310,50 @@ ISR(TIM1_OVF_vect)
     // Buffer overflow
     irparams.rcvstate = STATE_STOP;
   }
-  switch(irparams.rcvstate) {
-  case STATE_IDLE: // In the middle of a gap
-    if (irdata == MARK) {
-      if (irparams.timer < GAP_TICKS) {
-        // Not big enough to be a gap.
+  switch (irparams.rcvstate) {
+    case STATE_IDLE: // In the middle of a gap
+      if (irdata == MARK) {
+        if (irparams.timer < GAP_TICKS) {
+          // Not big enough to be a gap.
+          irparams.timer = 0;
+        }
+        else {
+          // gap just ended, record duration and start recording transmission
+          irparams.rawlen = 0;
+          irparams.rawbuf[irparams.rawlen++] = irparams.timer;
+          irparams.timer = 0;
+          irparams.rcvstate = STATE_MARK;
+        }
+      }
+      break;
+    case STATE_MARK: // timing MARK
+      if (irdata == SPACE) {   // MARK ended, record time
+        irparams.rawbuf[irparams.rawlen++] = irparams.timer;
         irparams.timer = 0;
-      } 
-      else {
-        // gap just ended, record duration and start recording transmission
-        irparams.rawlen = 0;
+        irparams.rcvstate = STATE_SPACE;
+      }
+      break;
+    case STATE_SPACE: // timing SPACE
+      if (irdata == MARK) { // SPACE just ended, record it
         irparams.rawbuf[irparams.rawlen++] = irparams.timer;
         irparams.timer = 0;
         irparams.rcvstate = STATE_MARK;
       }
-    }
-    break;
-  case STATE_MARK: // timing MARK
-    if (irdata == SPACE) {   // MARK ended, record time
-      irparams.rawbuf[irparams.rawlen++] = irparams.timer;
-      irparams.timer = 0;
-      irparams.rcvstate = STATE_SPACE;
-    }
-    break;
-  case STATE_SPACE: // timing SPACE
-    if (irdata == MARK) { // SPACE just ended, record it
-      irparams.rawbuf[irparams.rawlen++] = irparams.timer;
-      irparams.timer = 0;
-      irparams.rcvstate = STATE_MARK;
-    } 
-    else { // SPACE
-      if (irparams.timer > GAP_TICKS) {
-        // big SPACE, indicates gap between codes
-        // Mark current code as ready for processing
-        // Switch to STOP
-        // Don't reset timer; keep counting space width
-        irparams.rcvstate = STATE_STOP;
-      } 
-    }
-    break;
-  case STATE_STOP: // waiting, measuring gap
-    if (irdata == MARK) { // reset gap timer
-      irparams.timer = 0;
-    }
-    break;
+      else { // SPACE
+        if (irparams.timer > GAP_TICKS) {
+          // big SPACE, indicates gap between codes
+          // Mark current code as ready for processing
+          // Switch to STOP
+          // Don't reset timer; keep counting space width
+          irparams.rcvstate = STATE_STOP;
+        }
+      }
+      break;
+    case STATE_STOP: // waiting, measuring gap
+      if (irdata == MARK) { // reset gap timer
+        irparams.timer = 0;
+      }
+      break;
   }
 
 }
@@ -357,13 +388,19 @@ int IRrecv::decode(decode_results *results) {
   }
 #ifdef DEBUG
   Serial.println("Attempting RC5 decode");
-#endif  
+#endif
   if (decodeRC5(results)) {
     return DECODED;
   }
 #ifdef DEBUG
   Serial.println("Attempting RC6 decode");
-#endif 
+#endif
+  if (decodeSAMSUNG(results)) {
+    return DECODED;
+  }
+#ifdef DEBUG
+  Serial.println("Attempting Samsung decode");
+#endif
   if (decodeRC6(results)) {
     return DECODED;
   }
@@ -389,8 +426,8 @@ long IRrecv::decodeNEC(decode_results *results) {
   offset++;
   // Check for repeat
   if (irparams.rawlen == 4 &&
-    MATCH_SPACE(results->rawbuf[offset], NEC_RPT_SPACE) &&
-    MATCH_MARK(results->rawbuf[offset+1], NEC_BIT_MARK)) {
+      MATCH_SPACE(results->rawbuf[offset], NEC_RPT_SPACE) &&
+      MATCH_MARK(results->rawbuf[offset + 1], NEC_BIT_MARK)) {
     results->bits = 0;
     results->value = REPEAT;
     results->decode_type = NEC;
@@ -399,7 +436,7 @@ long IRrecv::decodeNEC(decode_results *results) {
   if (irparams.rawlen < 2 * NEC_BITS + 4) {
     return ERR;
   }
-  // Initial space  
+  // Initial space
   if (!MATCH_SPACE(results->rawbuf[offset], NEC_HDR_SPACE)) {
     return ERR;
   }
@@ -411,10 +448,10 @@ long IRrecv::decodeNEC(decode_results *results) {
     offset++;
     if (MATCH_SPACE(results->rawbuf[offset], NEC_ONE_SPACE)) {
       data = (data << 1) | 1;
-    } 
+    }
     else if (MATCH_SPACE(results->rawbuf[offset], NEC_ZERO_SPACE)) {
       data <<= 1;
-    } 
+    }
     else {
       return ERR;
     }
@@ -446,10 +483,10 @@ long IRrecv::decodeSony(decode_results *results) {
     offset++;
     if (MATCH_MARK(results->rawbuf[offset], SONY_ONE_MARK)) {
       data = (data << 1) | 1;
-    } 
+    }
     else if (MATCH_MARK(results->rawbuf[offset], SONY_ZERO_MARK)) {
       data <<= 1;
-    } 
+    }
     else {
       return ERR;
     }
@@ -486,13 +523,13 @@ int IRrecv::getRClevel(decode_results *results, int *offset, int *used, int t1) 
   int avail;
   if (MATCH(width, t1 + correction)) {
     avail = 1;
-  } 
-  else if (MATCH(width, 2*t1 + correction)) {
+  }
+  else if (MATCH(width, 2 * t1 + correction)) {
     avail = 2;
-  } 
-  else if (MATCH(width, 3*t1 + correction)) {
+  }
+  else if (MATCH(width, 3 * t1 + correction)) {
     avail = 3;
-  } 
+  }
   else {
     return -1;
   }
@@ -505,12 +542,12 @@ int IRrecv::getRClevel(decode_results *results, int *offset, int *used, int t1) 
 #ifdef DEBUG
   if (val == MARK) {
     Serial.println("MARK");
-  } 
+  }
   else {
     Serial.println("SPACE");
   }
 #endif
-  return val;   
+  return val;
 }
 
 long IRrecv::decodeRC5(decode_results *results) {
@@ -526,19 +563,19 @@ long IRrecv::decodeRC5(decode_results *results) {
   if (getRClevel(results, &offset, &used, RC5_T1) != MARK) return ERR;
   int nbits;
   for (nbits = 0; offset < irparams.rawlen; nbits++) {
-    int levelA = getRClevel(results, &offset, &used, RC5_T1); 
+    int levelA = getRClevel(results, &offset, &used, RC5_T1);
     int levelB = getRClevel(results, &offset, &used, RC5_T1);
     if (levelA == SPACE && levelB == MARK) {
       // 1 bit
       data = (data << 1) | 1;
-    } 
+    }
     else if (levelA == MARK && levelB == SPACE) {
       // zero bit
       data <<= 1;
-    } 
+    }
     else {
       return ERR;
-    } 
+    }
   }
 
   // Success
@@ -570,31 +607,135 @@ long IRrecv::decodeRC6(decode_results *results) {
   int nbits;
   for (nbits = 0; offset < results->rawlen; nbits++) {
     int levelA, levelB; // Next two levels
-    levelA = getRClevel(results, &offset, &used, RC6_T1); 
+    levelA = getRClevel(results, &offset, &used, RC6_T1);
     if (nbits == 3) {
       // T bit is double wide; make sure second half matches
       if (levelA != getRClevel(results, &offset, &used, RC6_T1)) return ERR;
-    } 
+    }
     levelB = getRClevel(results, &offset, &used, RC6_T1);
     if (nbits == 3) {
       // T bit is double wide; make sure second half matches
       if (levelB != getRClevel(results, &offset, &used, RC6_T1)) return ERR;
-    } 
+    }
     if (levelA == MARK && levelB == SPACE) { // reversed compared to RC5
       // 1 bit
       data = (data << 1) | 1;
-    } 
+    }
     else if (levelA == SPACE && levelB == MARK) {
       // zero bit
       data <<= 1;
-    } 
+    }
     else {
       return ERR; // Error
-    } 
+    }
   }
   // Success
   results->bits = nbits;
   results->value = data;
   results->decode_type = RC6;
   return DECODED;
+}
+
+//==============================================================================
+//              SSSS   AAA    MMM    SSSS  U   U  N   N   GGGG
+//             S      A   A  M M M  S      U   U  NN  N  G
+//              SSS   AAAAA  M M M   SSS   U   U  N N N  G  GG
+//                 S  A   A  M   M      S  U   U  N  NN  G   G
+//             SSSS   A   A  M   M  SSSS    UUU   N   N   GGG
+//==============================================================================
+
+
+//+=============================================================================
+
+
+
+//+=============================================================================
+// SAMSUNGs have a repeat only 4 items long
+//
+
+long IRrecv::decodeSAMSUNG(decode_results *results) {
+  unsigned int offset = 1;  // Skip first space
+
+  // Initial mark
+  if (!MATCH_MARK(results->rawbuf[offset], SAMSUNG_HEADER_MARK)) {
+    return ERR;
+  }
+  offset++;
+
+  // Check for repeat
+  if ((results->rawlen == 4) && MATCH_SPACE(results->rawbuf[offset], SAMSUNG_REPEAT_SPACE)
+      && MATCH_MARK(results->rawbuf[offset + 1], SAMSUNG_BIT_MARK)) {
+    results->bits = 0;
+    results->value = REPEAT;
+    //results->isRepeat = true;
+    results->decode_type = SAMSUNG;
+    return true;
+  }
+  if (results->rawlen < (2 * SAMSUNG_BITS) + 4) {
+    return ERR;
+  }
+
+  // Initial space
+  if (!MATCH_SPACE(results->rawbuf[offset], SAMSUNG_HEADER_SPACE)) {
+    return ERR;
+  }
+  offset++;
+
+  if (!decodePulseDistanceData(SAMSUNG_BITS, offset, SAMSUNG_BIT_MARK, SAMSUNG_ONE_SPACE, SAMSUNG_ZERO_SPACE, results)) {
+    return ERR;
+  }
+
+  // Success
+  results->bits = SAMSUNG_BITS;
+  results->decode_type = SAMSUNG;
+  return true;
+}
+
+bool IRrecv::decodePulseDistanceData(unsigned int aNumberOfBits, unsigned int aStartOffset, unsigned int aBitMarkMicros,
+                                     unsigned int aOneSpaceMicros, unsigned int aZeroSpaceMicros, decode_results *results, bool aMSBfirst) {
+  unsigned long tDecodedData = 0;
+
+  if (aMSBfirst) {
+    for (unsigned int i = 0; i < aNumberOfBits; i++) {
+      // Check for constant length mark
+      if (!MATCH_MARK(results->rawbuf[aStartOffset], aBitMarkMicros)) {
+        return false;
+      }
+      aStartOffset++;
+
+      // Check for variable length space indicating a 0 or 1
+      if (MATCH_SPACE(results->rawbuf[aStartOffset], aOneSpaceMicros)) {
+        tDecodedData = (tDecodedData << 1) | 1;
+      } else if (MATCH_SPACE(results->rawbuf[aStartOffset], aZeroSpaceMicros)) {
+        tDecodedData = (tDecodedData << 1) | 0;
+      } else {
+        return false;
+      }
+      aStartOffset++;
+    }
+  }
+#if defined(LSB_FIRST_REQUIRED)
+  else {
+    for (unsigned long mask = 1UL; aNumberOfBits > 0; mask <<= 1, aNumberOfBits--) {
+      // Check for constant length mark
+      if (!MATCH_MARK(results->rawbuf[aStartOffset], aBitMarkMicros)) {
+        return false;
+      }
+      aStartOffset++;
+
+      // Check for variable length space indicating a 0 or 1
+      if (MATCH_SPACE(results->rawbuf[aStartOffset], aOneSpaceMicros)) {
+        tDecodedData |= mask; // set the bit
+      } else if (MATCH_SPACE(results->rawbuf[aStartOffset], aZeroSpaceMicros)) {
+        // do not set the bit
+      } else {
+        return false;
+      }
+
+      aStartOffset++;
+    }
+  }
+#endif
+  results->value = tDecodedData;
+  return true;
 }
