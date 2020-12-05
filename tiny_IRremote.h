@@ -32,7 +32,7 @@
 // Results returned from the decoder
 class decode_results {
 public:
-  int decode_type; // NEC, SONY, RC5, UNKNOWN
+  int decode_type; // NEC, SONY, RC5, SAMSUNG, UNKNOWN
   unsigned long value; // Decoded value
   int bits; // Number of bits in decoded value
   volatile unsigned int *rawbuf; // Raw intervals in .5 us ticks
@@ -54,6 +54,8 @@ public:
 class IRrecv
 {
 public:
+  decode_results results;
+  
   IRrecv(int recvpin);
   int decode(decode_results *results);
   void enableIRIn();

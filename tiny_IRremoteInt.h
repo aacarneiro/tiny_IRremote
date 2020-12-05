@@ -54,20 +54,19 @@
 
 
 // pulse parameters in usec
-#define NEC_HDR_MARK	9000
+#define NEC_HEADER_MARK	9000
 #define NEC_HDR_SPACE	4500
 #define NEC_BIT_MARK	560
 #define NEC_ONE_SPACE	1600
 #define NEC_ZERO_SPACE	560
 #define NEC_RPT_SPACE	2250
 
-#define SONY_HDR_MARK	2400
+#define SONY_HEADER_MARK	2400
 #define SONY_HDR_SPACE	600
 #define SONY_ONE_MARK	1200
 #define SONY_ZERO_MARK	600
 #define SONY_RPT_LENGTH 45000
 
-#define SAMSUNG_BITS            32
 #define SAMSUNG_HEADER_MARK   4500
 #define SAMSUNG_HEADER_SPACE  4500
 #define SAMSUNG_BIT_MARK       560
@@ -78,7 +77,7 @@
 #define RC5_T1		889
 #define RC5_RPT_LENGTH	46000
 
-#define RC6_HDR_MARK	2666
+#define RC6_HEADER_MARK	2666
 #define RC6_HDR_SPACE	889
 #define RC6_T1		444
 #define RC6_RPT_LENGTH	46000
@@ -125,6 +124,7 @@ extern volatile irparams_t irparams;
 
 #define TOPBIT 0x80000000
 
+#define SAMSUNG_BITS 32
 #define NEC_BITS 32
 #define SONY_BITS 12
 #define MIN_RC5_SAMPLES 11

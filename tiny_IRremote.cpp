@@ -73,8 +73,8 @@ int MATCH_SPACE(int measured_ticks, int desired_us) {
 void IRsend::sendNEC(unsigned long data, int nbits)
 {
   enableIROut(38);
-  mark(NEC_HDR_MARK);
-  space(NEC_HDR_SPACE);
+  mark(NEC_HEADER_MARK);
+  space(NEC_HEADER_SPACE);
   for (int i = 0; i < nbits; i++) {
     if (data & TOPBIT) {
       mark(NEC_BIT_MARK);
@@ -92,17 +92,17 @@ void IRsend::sendNEC(unsigned long data, int nbits)
 
 void IRsend::sendSony(unsigned long data, int nbits) {
   enableIROut(40);
-  mark(SONY_HDR_MARK);
-  space(SONY_HDR_SPACE);
+  mark(SONY_HEADER_MARK);
+  space(SONY_HEADER_SPACE);
   data = data << (32 - nbits);
   for (int i = 0; i < nbits; i++) {
     if (data & TOPBIT) {
       mark(SONY_ONE_MARK);
-      space(SONY_HDR_SPACE);
+      space(SONY_HEADER_SPACE);
     }
     else {
       mark(SONY_ZERO_MARK);
-      space(SONY_HDR_SPACE);
+      space(SONY_HEADER_SPACE);
     }
     data <<= 1;
   }
@@ -178,8 +178,8 @@ void IRsend::sendRC6(unsigned long data, int nbits)
 {
   enableIROut(36);
   data = data << (32 - nbits);
-  mark(RC6_HDR_MARK);
-  space(RC6_HDR_SPACE);
+  mark(RC6_HEADER_MARK);
+  space(RC6_HEADER_SPACE);
   mark(RC6_T1); // start bit
   space(RC6_T1);
   int t;
@@ -420,13 +420,13 @@ long IRrecv::decodeNEC(decode_results *results) {
   long data = 0;
   int offset = 1; // Skip first space
   // Initial mark
-  if (!MATCH_MARK(results->rawbuf[offset], NEC_HDR_MARK)) {
+  if (!MATCH_MARK(results->rawbuf[offset], NEC_HEADER_MARK)) {
     return ERR;
   }
   offset++;
   // Check for repeat
   if (irparams.rawlen == 4 &&
-      MATCH_SPACE(results->rawbuf[offset], NEC_RPT_SPACE) &&
+      MATCH_SPACE(results->rawbuf[offset], NEC_REPEAT_SPACE) &&
       MATCH_MARK(results->rawbuf[offset + 1], NEC_BIT_MARK)) {
     results->bits = 0;
     results->value = REPEAT;
@@ -437,7 +437,7 @@ long IRrecv::decodeNEC(decode_results *results) {
     return ERR;
   }
   // Initial space
-  if (!MATCH_SPACE(results->rawbuf[offset], NEC_HDR_SPACE)) {
+  if (!MATCH_SPACE(results->rawbuf[offset], NEC_HEADER_SPACE)) {
     return ERR;
   }
   offset++;
@@ -471,13 +471,13 @@ long IRrecv::decodeSony(decode_results *results) {
   }
   int offset = 1; // Skip first space
   // Initial mark
-  if (!MATCH_MARK(results->rawbuf[offset], SONY_HDR_MARK)) {
+  if (!MATCH_MARK(results->rawbuf[offset], SONY_HEADER_MARK)) {
     return ERR;
   }
   offset++;
 
   while (offset + 1 < irparams.rawlen) {
-    if (!MATCH_SPACE(results->rawbuf[offset], SONY_HDR_SPACE)) {
+    if (!MATCH_SPACE(results->rawbuf[offset], SONY_HEADER_SPACE)) {
       break;
     }
     offset++;
@@ -591,11 +591,11 @@ long IRrecv::decodeRC6(decode_results *results) {
   }
   int offset = 1; // Skip first space
   // Initial mark
-  if (!MATCH_MARK(results->rawbuf[offset], RC6_HDR_MARK)) {
+  if (!MATCH_MARK(results->rawbuf[offset], RC6_HEADER_MARK)) {
     return ERR;
   }
   offset++;
-  if (!MATCH_SPACE(results->rawbuf[offset], RC6_HDR_SPACE)) {
+  if (!MATCH_SPACE(results->rawbuf[offset], RC6_HEADER_SPACE)) {
     return ERR;
   }
   offset++;
