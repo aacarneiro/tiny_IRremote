@@ -389,21 +389,30 @@ int IRrecv::decode(decode_results *results) {
 #ifdef DEBUG
   Serial.println("Attempting RC5 decode");
 #endif
+#if DECODE_RC5
   if (decodeRC5(results)) {
     return DECODED;
   }
 #ifdef DEBUG
   Serial.println("Attempting RC6 decode");
 #endif
-  if (decodeSAMSUNG(results)) {
+#endif // DECODE_RC5
+
+#if DECODE_SAMSUNG
+  if (decodeSAMSUNG()) {
     return DECODED;
   }
-#ifdef DEBUG
-  Serial.println("Attempting Samsung decode");
-#endif
+  #ifdef DEBUG
+    Serial.println("Attempting Samsung decode");
+  #endif
+#endif //DECODE_SAMSUNG
+
+#if DECODE_RC6
   if (decodeRC6(results)) {
     return DECODED;
   }
+#endif // DECODE_RC6
+
   if (results->rawlen >= 6) {
     // Only return raw buffer if at least 6 bits
     results->decode_type = UNKNOWN;
@@ -549,7 +558,7 @@ int IRrecv::getRClevel(decode_results *results, int *offset, int *used, int t1) 
 #endif
   return val;
 }
-
+#if DECODE_RC5
 long IRrecv::decodeRC5(decode_results *results) {
   if (irparams.rawlen < MIN_RC5_SAMPLES + 2) {
     return ERR;
@@ -584,7 +593,9 @@ long IRrecv::decodeRC5(decode_results *results) {
   results->decode_type = RC5;
   return DECODED;
 }
+#endif  //DECODE_RC5
 
+#if DECODE_RC6
 long IRrecv::decodeRC6(decode_results *results) {
   if (results->rawlen < MIN_RC6_SAMPLES) {
     return ERR;
@@ -635,7 +646,7 @@ long IRrecv::decodeRC6(decode_results *results) {
   results->decode_type = RC6;
   return DECODED;
 }
-
+#endif //DECODE_RC6
 //==============================================================================
 //              SSSS   AAA    MMM    SSSS  U   U  N   N   GGGG
 //             S      A   A  M M M  S      U   U  NN  N  G
@@ -652,61 +663,62 @@ long IRrecv::decodeRC6(decode_results *results) {
 //+=============================================================================
 // SAMSUNGs have a repeat only 4 items long
 //
-
-long IRrecv::decodeSAMSUNG(decode_results *results) {
+#if DECODE_SAMSUNG
+long IRrecv::decodeSAMSUNG() {
   unsigned int offset = 1;  // Skip first space
 
   // Initial mark
-  if (!MATCH_MARK(results->rawbuf[offset], SAMSUNG_HEADER_MARK)) {
+  if (!MATCH_MARK(results.rawbuf[offset], SAMSUNG_HEADER_MARK)) {
     return ERR;
   }
   offset++;
 
   // Check for repeat
-  if ((results->rawlen == 4) && MATCH_SPACE(results->rawbuf[offset], SAMSUNG_REPEAT_SPACE)
-      && MATCH_MARK(results->rawbuf[offset + 1], SAMSUNG_BIT_MARK)) {
-    results->bits = 0;
-    results->value = REPEAT;
-    //results->isRepeat = true;
-    results->decode_type = SAMSUNG;
+  if ((results.rawlen == 4) && MATCH_SPACE(results.rawbuf[offset], SAMSUNG_REPEAT_SPACE)
+      && MATCH_MARK(results.rawbuf[offset + 1], SAMSUNG_BIT_MARK)) {
+    results.bits = 0;
+    results.value = REPEAT;
+    //results.isRepeat = true;
+    results.decode_type = SAMSUNG;
     return true;
   }
-  if (results->rawlen < (2 * SAMSUNG_BITS) + 4) {
+  if (results.rawlen < (2 * SAMSUNG_BITS) + 4) {
     return ERR;
   }
 
   // Initial space
-  if (!MATCH_SPACE(results->rawbuf[offset], SAMSUNG_HEADER_SPACE)) {
+  if (!MATCH_SPACE(results.rawbuf[offset], SAMSUNG_HEADER_SPACE)) {
     return ERR;
   }
   offset++;
 
-  if (!decodePulseDistanceData(SAMSUNG_BITS, offset, SAMSUNG_BIT_MARK, SAMSUNG_ONE_SPACE, SAMSUNG_ZERO_SPACE, results)) {
+  if (!decodePulseDistanceData(SAMSUNG_BITS, offset, SAMSUNG_BIT_MARK, SAMSUNG_ONE_SPACE, SAMSUNG_ZERO_SPACE)) {
     return ERR;
   }
 
   // Success
-  results->bits = SAMSUNG_BITS;
-  results->decode_type = SAMSUNG;
+  results.bits = SAMSUNG_BITS;
+  results.decode_type = SAMSUNG;
   return true;
 }
+#endif
 
 bool IRrecv::decodePulseDistanceData(unsigned int aNumberOfBits, unsigned int aStartOffset, unsigned int aBitMarkMicros,
-                                     unsigned int aOneSpaceMicros, unsigned int aZeroSpaceMicros, decode_results *results, bool aMSBfirst) {
+                                     unsigned int aOneSpaceMicros, unsigned int aZeroSpaceMicros, bool aMSBfirst) {
   unsigned long tDecodedData = 0;
 
   if (aMSBfirst) {
     for (unsigned int i = 0; i < aNumberOfBits; i++) {
       // Check for constant length mark
-      if (!MATCH_MARK(results->rawbuf[aStartOffset], aBitMarkMicros)) {
+      if (!MATCH_MARK(results.rawbuf[aStartOffset], aBitMarkMicros)) {
         return false;
       }
       aStartOffset++;
 
       // Check for variable length space indicating a 0 or 1
-      if (MATCH_SPACE(results->rawbuf[aStartOffset], aOneSpaceMicros)) {
+      if (MATCH_SPACE(results.rawbuf[aStartOffset], aOneSpaceMicros)) {
         tDecodedData = (tDecodedData << 1) | 1;
-      } else if (MATCH_SPACE(results->rawbuf[aStartOffset], aZeroSpaceMicros)) {
+      } else if (MATCH_SPACE(results.rawbuf[aStartOffset], aZeroSpaceMicros)) {
         tDecodedData = (tDecodedData << 1) | 0;
       } else {
         return false;
@@ -718,15 +730,15 @@ bool IRrecv::decodePulseDistanceData(unsigned int aNumberOfBits, unsigned int aS
   else {
     for (unsigned long mask = 1UL; aNumberOfBits > 0; mask <<= 1, aNumberOfBits--) {
       // Check for constant length mark
-      if (!MATCH_MARK(results->rawbuf[aStartOffset], aBitMarkMicros)) {
+      if (!MATCH_MARK(results.rawbuf[aStartOffset], aBitMarkMicros)) {
         return false;
       }
       aStartOffset++;
 
       // Check for variable length space indicating a 0 or 1
-      if (MATCH_SPACE(results->rawbuf[aStartOffset], aOneSpaceMicros)) {
+      if (MATCH_SPACE(results.rawbuf[aStartOffset], aOneSpaceMicros)) {
         tDecodedData |= mask; // set the bit
-      } else if (MATCH_SPACE(results->rawbuf[aStartOffset], aZeroSpaceMicros)) {
+      } else if (MATCH_SPACE(results.rawbuf[aStartOffset], aZeroSpaceMicros)) {
         // do not set the bit
       } else {
         return false;
@@ -736,6 +748,6 @@ bool IRrecv::decodePulseDistanceData(unsigned int aNumberOfBits, unsigned int aS
     }
   }
 #endif
-  results->value = tDecodedData;
+  results.value = tDecodedData;
   return true;
 }

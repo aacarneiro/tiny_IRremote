@@ -1,5 +1,4 @@
 #include <SoftwareSerial.h>
-
 #include "tiny_IRremote.h"
 
 int RX = 3;
@@ -41,7 +40,6 @@ void loop() {
   }
 
 }
-
 
 inline void digitalToggle(int pin) {
   static bool state = false;

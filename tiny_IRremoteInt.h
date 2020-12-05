@@ -1,8 +1,10 @@
 /*
  * tiny_IRremote
- * Version 0.2 July, 2016
- * Christian D'Abrera
- * Fixed what was originally rather broken code from http://www.gammon.com.au/Arduino/
+ * Version 0.3 Dec, 2020
+ *
+ * Antonio Carneiro
+ * Complemented the code from Christian D'Abrera, who fixed what was originally rather 
+ * broken code from http://www.gammon.com.au/Arduino/
  * ...itself based on work by Ken Shirriff.
  *
  * This code was tested for both sending and receiving IR on an ATtiny85 DIP-8 chip.
@@ -47,25 +49,26 @@
 
 // clock timer reset value
 #define INIT_TIMER_COUNT1 (CLK - USECPERTICK*CLKSPERUSEC + CLKFUDGE)
-
-
 #define RESET_TIMER1 TCNT1 = INIT_TIMER_COUNT1
 
-
+/* 
+Source for the pulse lenghts:
+https://www.techdesign.be/projects/011/011_waves.htm
+*/
 
 // pulse parameters in usec
 #define NEC_HEADER_MARK	9000
-#define NEC_HDR_SPACE	4500
+#define NEC_HEADER_SPACE	4500
 #define NEC_BIT_MARK	560
 #define NEC_ONE_SPACE	1600
 #define NEC_ZERO_SPACE	560
-#define NEC_RPT_SPACE	2250
+#define NEC_REPEAT_SPACE	2250
 
 #define SONY_HEADER_MARK	2400
-#define SONY_HDR_SPACE	600
+#define SONY_HEADER_SPACE	600
 #define SONY_ONE_MARK	1200
 #define SONY_ZERO_MARK	600
-#define SONY_RPT_LENGTH 45000
+#define SONY_REPEAT_LENGTH 45000
 
 #define SAMSUNG_HEADER_MARK   4500
 #define SAMSUNG_HEADER_SPACE  4500
@@ -75,12 +78,12 @@
 #define SAMSUNG_REPEAT_SPACE  2250
 
 #define RC5_T1		889
-#define RC5_RPT_LENGTH	46000
+#define RC5_REPEAT_LENGTH	46000
 
 #define RC6_HEADER_MARK	2666
-#define RC6_HDR_SPACE	889
+#define RC6_HEADER_SPACE	889
 #define RC6_T1		444
-#define RC6_RPT_LENGTH	46000
+#define RC6_REPEAT_LENGTH	46000
 
 #define TOLERANCE 25  // percent tolerance in measurements
 #define LTOL (1.0 - TOLERANCE/100.) 

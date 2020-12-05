@@ -1,7 +1,19 @@
-#include <SoftwareSerial.h>
+/*
+Author: Antonio Carneiro
 
+Uses the serial monitor to check if the library is working as intended.
+
+*/
+
+#include <SoftwareSerial.h>
 #include "tiny_IRremote.h"
 
+// Pin on your attiny to communicate with the arduino
+// ATTINY PINS:
+// RST    --- VCC
+// PIN 3  --- PIN 2
+// PIN 4  --- PIN 1
+// GND    --- PIN 0
 int RX = 3;
 int TX = 4;
 SoftwareSerial Monitor(RX,TX);
@@ -36,14 +48,16 @@ void loop() {
       break;
   }
 
-  if(results.decode_type == 5){
+  // Switches on the led if the IR code matches the desired controller type.
+  if(results.decode_type == SAMSUNG){
     digitalToggle(light_pin);
   }
 
 }
 
-
 inline void digitalToggle(int pin) {
+  /* Toggles the value of a digital port.
+  */
   static bool state = false;
   state = !state;
   digitalWrite(pin, state);
