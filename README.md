@@ -1,10 +1,10 @@
 # tiny_IRremote
 
-Library to receive and send IR signals using attiny microcontrollers.
+[Arduino IRremote](https://github.com/z3t0/Arduino-IRremote) ported to the ATtiny.
 
 ## Supported protocols
 
-Samsung, Sony, RC5, RC6
+Samsung, Sony, RC5, RC6, NEC.
 
 ## Credits
 
@@ -13,4 +13,3 @@ Based on the code published by SeeJayDee [here](https://gist.github.com/SeeJayDe
 ## Todos
 
 * Implement new functions from [IRRemote](https://www.arduino.cc/reference/en/libraries/irremote/): decodePulseDistanceData
-* Add decode_results as a member from IRrecv; remove it from function calls
