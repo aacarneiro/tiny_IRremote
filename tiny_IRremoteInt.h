@@ -59,9 +59,9 @@ https://www.techdesign.be/projects/011/011_waves.htm
 // pulse parameters in usec
 #define NEC_HEADER_MARK	9000
 #define NEC_HEADER_SPACE	4500
-#define NEC_BIT_MARK	560
-#define NEC_ONE_SPACE	1600
-#define NEC_ZERO_SPACE	560
+#define NEC_BIT_MARK	562
+#define NEC_ONE_SPACE	1690
+#define NEC_ZERO_SPACE	562
 #define NEC_REPEAT_SPACE	2250
 
 #define SONY_HEADER_MARK	2400
@@ -73,7 +73,7 @@ https://www.techdesign.be/projects/011/011_waves.htm
 #define SAMSUNG_HEADER_MARK   4500
 #define SAMSUNG_HEADER_SPACE  4500
 #define SAMSUNG_BIT_MARK       560
-#define SAMSUNG_ONE_SPACE     1600
+#define SAMSUNG_ONE_SPACE     1690
 #define SAMSUNG_ZERO_SPACE     560
 #define SAMSUNG_REPEAT_SPACE  2250
 

@@ -70,6 +70,7 @@ int MATCH_SPACE(int measured_ticks, int desired_us) {
 }
 #endif
 
+#if SEND_NEC
 void IRsend::sendNEC(unsigned long data, int nbits)
 {
   enableIROut(38);
@@ -89,7 +90,9 @@ void IRsend::sendNEC(unsigned long data, int nbits)
   mark(NEC_BIT_MARK);
   space(0);
 }
+#endif // SEND_NEC
 
+#if SEND_SONY
 void IRsend::sendSony(unsigned long data, int nbits) {
   enableIROut(40);
   mark(SONY_HEADER_MARK);
@@ -107,7 +110,9 @@ void IRsend::sendSony(unsigned long data, int nbits) {
     data <<= 1;
   }
 }
+#endif //SEND_SONY
 
+#if SEND_SAMSUNG
 void IRsend::sendSAMSUNG(unsigned long data, int nbits) {
   // Set IR carrier frequency
   enableIROut(38);
@@ -136,9 +141,11 @@ void IRsend::sendSAMSUNG(unsigned long data, int nbits) {
   mark(SAMSUNG_BIT_MARK);
   space(0);  // Always end with the LED off
 }
+#endif // SEND_SAMSUNG
 
 void IRsend::sendRaw(unsigned int buf[], int len, int hz)
 {
+
   enableIROut(hz);
   for (int i = 0; i < len; i++) {
     if (i & 1) {
@@ -151,6 +158,7 @@ void IRsend::sendRaw(unsigned int buf[], int len, int hz)
   space(0); // Just to be sure
 }
 
+#if SEND_RC5
 // Note: first bit must be a one (start bit)
 void IRsend::sendRC5(unsigned long data, int nbits)
 {
@@ -172,7 +180,9 @@ void IRsend::sendRC5(unsigned long data, int nbits)
   }
   space(0); // Turn off at end
 }
+#endif // SEND_RC5
 
+#if SEND_RC6
 // Caller needs to take care of flipping the toggle bit
 void IRsend::sendRC6(unsigned long data, int nbits)
 {
@@ -204,7 +214,7 @@ void IRsend::sendRC6(unsigned long data, int nbits)
   }
   space(0); // Turn off at end
 }
-
+#endif // SEND_RC6
 
 
 void IRsend::mark(int time) {
@@ -368,29 +378,33 @@ void IRrecv::resume() {
 // Decodes the received IR message
 // Returns 0 if no data ready, 1 if data ready.
 // Results of decoding are stored in results
-int IRrecv::decode(decode_results *results) {
-  results->rawbuf = irparams.rawbuf;
-  results->rawlen = irparams.rawlen;
+int IRrecv::decode() {
+  results.rawbuf = irparams.rawbuf;
+  results.rawlen = irparams.rawlen;
   if (irparams.rcvstate != STATE_STOP) {
     return ERR;
   }
 #ifdef DEBUG
   Serial.println("Attempting NEC decode");
 #endif
-  if (decodeNEC(results)) {
+  if (decodeNEC()) {
     return DECODED;
   }
 #ifdef DEBUG
   Serial.println("Attempting Sony decode");
 #endif
-  if (decodeSony(results)) {
+
+#if DECODE_SONY
+  if (decodeSony()) {
     return DECODED;
   }
 #ifdef DEBUG
   Serial.println("Attempting RC5 decode");
 #endif
+#endif // DECODE_SONY
+
 #if DECODE_RC5
-  if (decodeRC5(results)) {
+  if (decodeRC5()) {
     return DECODED;
   }
 #ifdef DEBUG
@@ -408,16 +422,16 @@ int IRrecv::decode(decode_results *results) {
 #endif //DECODE_SAMSUNG
 
 #if DECODE_RC6
-  if (decodeRC6(results)) {
+  if (decodeRC6()) {
     return DECODED;
   }
 #endif // DECODE_RC6
 
-  if (results->rawlen >= 6) {
+  if (results.rawlen >= 6) {
     // Only return raw buffer if at least 6 bits
-    results->decode_type = UNKNOWN;
-    results->bits = 0;
-    results->value = 0;
+    results.decode_type = UNKNOWN;
+    results.bits = 0;
+    results.value = 0;
     return DECODED;
   }
   // Throw away and start over
@@ -425,40 +439,40 @@ int IRrecv::decode(decode_results *results) {
   return ERR;
 }
 
-long IRrecv::decodeNEC(decode_results *results) {
+long IRrecv::decodeNEC() {
   long data = 0;
   int offset = 1; // Skip first space
   // Initial mark
-  if (!MATCH_MARK(results->rawbuf[offset], NEC_HEADER_MARK)) {
+  if (!MATCH_MARK(results.rawbuf[offset], NEC_HEADER_MARK)) {
     return ERR;
   }
   offset++;
   // Check for repeat
   if (irparams.rawlen == 4 &&
-      MATCH_SPACE(results->rawbuf[offset], NEC_REPEAT_SPACE) &&
-      MATCH_MARK(results->rawbuf[offset + 1], NEC_BIT_MARK)) {
-    results->bits = 0;
-    results->value = REPEAT;
-    results->decode_type = NEC;
+      MATCH_SPACE(results.rawbuf[offset], NEC_REPEAT_SPACE) &&
+      MATCH_MARK(results.rawbuf[offset + 1], NEC_BIT_MARK)) {
+    results.bits = 0;
+    results.value = REPEAT;
+    results.decode_type = NEC;
     return DECODED;
   }
   if (irparams.rawlen < 2 * NEC_BITS + 4) {
     return ERR;
   }
   // Initial space
-  if (!MATCH_SPACE(results->rawbuf[offset], NEC_HEADER_SPACE)) {
+  if (!MATCH_SPACE(results.rawbuf[offset], NEC_HEADER_SPACE)) {
     return ERR;
   }
   offset++;
   for (int i = 0; i < NEC_BITS; i++) {
-    if (!MATCH_MARK(results->rawbuf[offset], NEC_BIT_MARK)) {
+    if (!MATCH_MARK(results.rawbuf[offset], NEC_BIT_MARK)) {
       return ERR;
     }
     offset++;
-    if (MATCH_SPACE(results->rawbuf[offset], NEC_ONE_SPACE)) {
+    if (MATCH_SPACE(results.rawbuf[offset], NEC_ONE_SPACE)) {
       data = (data << 1) | 1;
     }
-    else if (MATCH_SPACE(results->rawbuf[offset], NEC_ZERO_SPACE)) {
+    else if (MATCH_SPACE(results.rawbuf[offset], NEC_ZERO_SPACE)) {
       data <<= 1;
     }
     else {
@@ -467,33 +481,33 @@ long IRrecv::decodeNEC(decode_results *results) {
     offset++;
   }
   // Success
-  results->bits = NEC_BITS;
-  results->value = data;
-  results->decode_type = NEC;
+  results.bits = NEC_BITS;
+  results.value = data;
+  results.decode_type = NEC;
   return DECODED;
 }
-
-long IRrecv::decodeSony(decode_results *results) {
+#if DECODE_SONY
+long IRrecv::decodeSony() {
   long data = 0;
   if (irparams.rawlen < 2 * SONY_BITS + 2) {
     return ERR;
   }
   int offset = 1; // Skip first space
   // Initial mark
-  if (!MATCH_MARK(results->rawbuf[offset], SONY_HEADER_MARK)) {
+  if (!MATCH_MARK(results.rawbuf[offset], SONY_HEADER_MARK)) {
     return ERR;
   }
   offset++;
 
   while (offset + 1 < irparams.rawlen) {
-    if (!MATCH_SPACE(results->rawbuf[offset], SONY_HEADER_SPACE)) {
+    if (!MATCH_SPACE(results.rawbuf[offset], SONY_HEADER_SPACE)) {
       break;
     }
     offset++;
-    if (MATCH_MARK(results->rawbuf[offset], SONY_ONE_MARK)) {
+    if (MATCH_MARK(results.rawbuf[offset], SONY_ONE_MARK)) {
       data = (data << 1) | 1;
     }
-    else if (MATCH_MARK(results->rawbuf[offset], SONY_ZERO_MARK)) {
+    else if (MATCH_MARK(results.rawbuf[offset], SONY_ZERO_MARK)) {
       data <<= 1;
     }
     else {
@@ -503,15 +517,16 @@ long IRrecv::decodeSony(decode_results *results) {
   }
 
   // Success
-  results->bits = (offset - 1) / 2;
-  if (results->bits < 12) {
-    results->bits = 0;
+  results.bits = (offset - 1) / 2;
+  if (results.bits < 12) {
+    results.bits = 0;
     return ERR;
   }
-  results->value = data;
-  results->decode_type = SONY;
+  results.value = data;
+  results.decode_type = SONY;
   return DECODED;
 }
+#endif // DECODE_SONY
 
 // Gets one undecoded level at a time from the raw buffer.
 // The RC5/6 decoding is easier if the data is broken into time intervals.
@@ -520,12 +535,12 @@ long IRrecv::decodeSony(decode_results *results) {
 // offset and used are updated to keep track of the current position.
 // t1 is the time interval for a single bit in microseconds.
 // Returns -1 for error (measured time interval is not a multiple of t1).
-int IRrecv::getRClevel(decode_results *results, int *offset, int *used, int t1) {
-  if (*offset >= results->rawlen) {
+int IRrecv::getRClevel(int *offset, int *used, int t1) {
+  if (*offset >= results.rawlen) {
     // After end of recorded buffer, assume SPACE.
     return SPACE;
   }
-  int width = results->rawbuf[*offset];
+  int width = results.rawbuf[*offset];
   int val = ((*offset) % 2) ? MARK : SPACE;
   int correction = (val == MARK) ? MARK_EXCESS : - MARK_EXCESS;
 
@@ -559,7 +574,7 @@ int IRrecv::getRClevel(decode_results *results, int *offset, int *used, int t1) 
   return val;
 }
 #if DECODE_RC5
-long IRrecv::decodeRC5(decode_results *results) {
+long IRrecv::decodeRC5() {
   if (irparams.rawlen < MIN_RC5_SAMPLES + 2) {
     return ERR;
   }
@@ -567,13 +582,13 @@ long IRrecv::decodeRC5(decode_results *results) {
   long data = 0;
   int used = 0;
   // Get start bits
-  if (getRClevel(results, &offset, &used, RC5_T1) != MARK) return ERR;
-  if (getRClevel(results, &offset, &used, RC5_T1) != SPACE) return ERR;
-  if (getRClevel(results, &offset, &used, RC5_T1) != MARK) return ERR;
+  if (getRClevel(&offset, &used, RC5_T1) != MARK) return ERR;
+  if (getRClevel(&offset, &used, RC5_T1) != SPACE) return ERR;
+  if (getRClevel(&offset, &used, RC5_T1) != MARK) return ERR;
   int nbits;
   for (nbits = 0; offset < irparams.rawlen; nbits++) {
-    int levelA = getRClevel(results, &offset, &used, RC5_T1);
-    int levelB = getRClevel(results, &offset, &used, RC5_T1);
+    int levelA = getRClevel(&offset, &used, RC5_T1);
+    int levelB = getRClevel(&offset, &used, RC5_T1);
     if (levelA == SPACE && levelB == MARK) {
       // 1 bit
       data = (data << 1) | 1;
@@ -588,45 +603,45 @@ long IRrecv::decodeRC5(decode_results *results) {
   }
 
   // Success
-  results->bits = nbits;
-  results->value = data;
-  results->decode_type = RC5;
+  results.bits = nbits;
+  results.value = data;
+  results.decode_type = RC5;
   return DECODED;
 }
 #endif  //DECODE_RC5
 
 #if DECODE_RC6
-long IRrecv::decodeRC6(decode_results *results) {
-  if (results->rawlen < MIN_RC6_SAMPLES) {
+long IRrecv::decodeRC6() {
+  if (results.rawlen < MIN_RC6_SAMPLES) {
     return ERR;
   }
   int offset = 1; // Skip first space
   // Initial mark
-  if (!MATCH_MARK(results->rawbuf[offset], RC6_HEADER_MARK)) {
+  if (!MATCH_MARK(results.rawbuf[offset], RC6_HEADER_MARK)) {
     return ERR;
   }
   offset++;
-  if (!MATCH_SPACE(results->rawbuf[offset], RC6_HEADER_SPACE)) {
+  if (!MATCH_SPACE(results.rawbuf[offset], RC6_HEADER_SPACE)) {
     return ERR;
   }
   offset++;
   long data = 0;
   int used = 0;
   // Get start bit (1)
-  if (getRClevel(results, &offset, &used, RC6_T1) != MARK) return ERR;
-  if (getRClevel(results, &offset, &used, RC6_T1) != SPACE) return ERR;
+  if (getRClevel(&offset, &used, RC6_T1) != MARK) return ERR;
+  if (getRClevel(&offset, &used, RC6_T1) != SPACE) return ERR;
   int nbits;
-  for (nbits = 0; offset < results->rawlen; nbits++) {
+  for (nbits = 0; offset < results.rawlen; nbits++) {
     int levelA, levelB; // Next two levels
-    levelA = getRClevel(results, &offset, &used, RC6_T1);
+    levelA = getRClevel(&offset, &used, RC6_T1);
     if (nbits == 3) {
       // T bit is double wide; make sure second half matches
-      if (levelA != getRClevel(results, &offset, &used, RC6_T1)) return ERR;
+      if (levelA != getRClevel(&offset, &used, RC6_T1)) return ERR;
     }
-    levelB = getRClevel(results, &offset, &used, RC6_T1);
+    levelB = getRClevel(&offset, &used, RC6_T1);
     if (nbits == 3) {
       // T bit is double wide; make sure second half matches
-      if (levelB != getRClevel(results, &offset, &used, RC6_T1)) return ERR;
+      if (levelB != getRClevel(&offset, &used, RC6_T1)) return ERR;
     }
     if (levelA == MARK && levelB == SPACE) { // reversed compared to RC5
       // 1 bit
@@ -641,9 +656,9 @@ long IRrecv::decodeRC6(decode_results *results) {
     }
   }
   // Success
-  results->bits = nbits;
-  results->value = data;
-  results->decode_type = RC6;
+  results.bits = nbits;
+  results.value = data;
+  results.decode_type = RC6;
   return DECODED;
 }
 #endif //DECODE_RC6

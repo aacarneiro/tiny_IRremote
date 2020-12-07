@@ -47,8 +47,19 @@ public:
 #define SAMSUNG 5
 #define UNKNOWN -1
 
-#define DECODE_RC6 0
+// Select which part of the code to compile
+
+#define DECODE_NEC 1
+#define DECODE_SONY 1
+#define DECODE_RC5 1
+#define DECODE_RC6 1
 #define DECODE_SAMSUNG 1
+
+#define SEND_NEC 0
+#define SEND_SONY 0
+#define SEND_RC5 0
+#define SEND_RC6 0
+#define SEND_SAMSUNG 0
 
 // Decoded value for NEC when a repeat code is received
 #define REPEAT 0xffffffff
@@ -60,23 +71,26 @@ public:
   decode_results results;
   
   IRrecv(int recvpin);
-  int decode(decode_results *results);
+  int decode();
   void enableIRIn();
   void resume();
   bool decodePulseDistanceData(unsigned int aNumberOfBits, unsigned int aStartOffset, unsigned int aBitMarkMicros,
         unsigned int aOneSpaceMicros, unsigned int aZeroSpaceMicros, bool aMSBfirst = true);
 private:
   // These are called by decode
-  int getRClevel(decode_results *results, int *offset, int *used, int t1);
-  long decodeNEC(decode_results *results);
-  long decodeSony(decode_results *results);
+  int getRClevel(int *offset, int *used, int t1);
+  long decodeNEC();
   
+  #if DECODE_SONY
+  long decodeSony();
+  #endif
+
   #if DECODE_RC5
-    long decodeRC5(decode_results *results);
+    long decodeRC5();
   #endif
 
   #if DECODE_RC6
-  long decodeRC6(decode_results *results);
+  long decodeRC6();
   #endif
 
   #if DECODE_SAMSUNG
@@ -96,12 +110,28 @@ class IRsend
 {
 public:
   IRsend() {}
+  #if SEND_NEC
   void sendNEC(unsigned long data, int nbits);
+  #endif // SEND_NEC
+
+  #if SEND_SONY
   void sendSony(unsigned long data, int nbits);
+  #endif //SEND_SONY
+
   void sendRaw(unsigned int buf[], int len, int hz);
+  
+  #if SEND_RC5
   void sendRC5(unsigned long data, int nbits);
+  #endif // SEND_RC5
+
+  #if SEND_RC6
   void sendRC6(unsigned long data, int nbits);
+  #endif // SEND_RC6
+
+  #if SEND_SAMSUNG
   void sendSAMSUNG(unsigned long data, int nbits);
+  #endif // SEND_SAMSUNG
+  
   // private:
   void enableIROut(int khz);
   VIRTUAL void mark(int usec);
@@ -118,4 +148,4 @@ public:
 // when received due to sensor lag.
 #define MARK_EXCESS 100
 
-#endif
+// #endif
