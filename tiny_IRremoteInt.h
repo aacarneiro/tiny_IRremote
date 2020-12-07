@@ -54,6 +54,10 @@
 /* 
 Source for the pulse lenghts:
 https://www.techdesign.be/projects/011/011_waves.htm
+
+NEC: https://www.sbprojects.net/knowledge/ir/nec.php
+
+Sony: https://www.sbprojects.net/knowledge/ir/sirc.php
 */
 
 // pulse parameters in usec
